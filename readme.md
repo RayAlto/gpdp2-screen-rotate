@@ -5,10 +5,10 @@ GPD Pocket 2 has a touch screen, its pointer device of touch screen cannot be au
 ## 1. Usage
 
 ```shell
-gpdp2_screen_rotate
+gpdp2_screen_rotate [orientation]
 ```
 
-will rotate the screen and pointer of touch screen clockwise at the same time
+will rotate the screen and pointer of touch screen clockwise at the same time, or you can specify orientation.
 
 ## 2. About The Device
 

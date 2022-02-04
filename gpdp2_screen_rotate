@@ -11,33 +11,50 @@ matrixs = [
     ['0', '-1', '1', '1', '0', '0', '0', '0', '1']
 ]
 
-xrandr_output = subprocess.run(['xrandr', '-q', '-v'], capture_output=True).stdout.decode('utf-8')
-edp1_search = re.search(r'eDP1 connected.*', xrandr_output)
-if edp1_search is None:
-    print('Cannot find output: eDP1', file=sys.stderr)
-    sys.exit(1)
-edp1_xrandr_line = re.sub(r'\([^\)]*\)', '', edp1_search.group(0))
-edp1_current_orientation_search = re.search(r'.*\d+x\d+\+\d+\+\d+([\w\s]*?)\d+mm\s+x\s+\d+mm.*', edp1_xrandr_line)
-if edp1_current_orientation_search is None:
-    print(f'Regex failed while finding current orientation: {edp1_xrandr_line}', file=sys.stderr)
-    sys.exit(1)
-edp1_current_orientation = edp1_current_orientation_search.group(1).strip()
-if len(edp1_current_orientation) == 0:
-    edp1_current_orientation = 'normal'
+new_orientation = orientations[0]
+new_matrix = matrixs[0]
 
-current_orientation_index = orientations.index(edp1_current_orientation)
-new_orientation_index = 0 if current_orientation_index == 3 else current_orientation_index + 1
-new_orientation = orientations[new_orientation_index]
-new_matrix = matrixs[new_orientation_index]
+if len(sys.argv) == 1:
+    xrandr_output = subprocess.run(
+        ['xrandr', '-q', '-v'], capture_output=True).stdout.decode('utf-8')
+    edp1_search = re.search(r'eDP1 connected.*', xrandr_output)
+    if edp1_search is None:
+        print('Cannot find output: eDP1', file=sys.stderr)
+        sys.exit(1)
+    edp1_xrandr_line = re.sub(r'\([^\)]*\)', '', edp1_search.group(0))
+    edp1_current_orientation_search = re.search(
+        r'.*\d+x\d+\+\d+\+\d+([\w\s]*?)\d+mm\s+x\s+\d+mm.*', edp1_xrandr_line)
+    if edp1_current_orientation_search is None:
+        print(
+            f'Regex failed while finding current orientation: {edp1_xrandr_line}', file=sys.stderr)
+        sys.exit(1)
+    edp1_current_orientation = edp1_current_orientation_search.group(1).strip()
+    if len(edp1_current_orientation) == 0:
+        edp1_current_orientation = 'normal'
+    current_orientation_index = orientations.index(edp1_current_orientation)
+    new_orientation_index = 0 if current_orientation_index == 3 else current_orientation_index + 1
+    new_orientation = orientations[new_orientation_index]
+    new_matrix = matrixs[new_orientation_index]
 
-rotate_result = subprocess.run(['xrandr', '--output', 'eDP1', '--rotate', new_orientation], capture_output=True)
+else:
+    new_orientation = sys.argv[1]
+    if new_orientation not in orientations:
+        print(f'only {", ".join(orientations)} acceptable')
+        sys.exit(-1)
+    new_orientation_index = orientations.index(new_orientation)
+    new_matrix = matrixs[new_orientation_index]
+
+rotate_result = subprocess.run(
+    ['xrandr', '--output', 'eDP1', '--rotate', new_orientation], capture_output=True)
 if rotate_result.returncode != 0:
-    print(f'Xrandr rotation failed with return code {rotate_result.returncode}:\n{rotate_result.stdout}\n{rotate_result.stderr}', file=sys.stderr)
+    print(
+        f'Xrandr rotation failed with return code {rotate_result.returncode}:\n{rotate_result.stdout}\n{rotate_result.stderr}', file=sys.stderr)
     sys.exit(1)
-rotate_touchscreen_result = subprocess.run(['xinput', 'set-prop', 'pointer:Goodix Capacitive TouchScreen', '--type=float', 'libinput Calibration Matrix', *new_matrix], capture_output=True)
+rotate_touchscreen_result = subprocess.run(['xinput', 'set-prop', 'pointer:Goodix Capacitive TouchScreen',
+                                           '--type=float', 'libinput Calibration Matrix', *new_matrix], capture_output=True)
 if rotate_touchscreen_result.returncode != 0:
-    print(f'Xinput rotation failed with return code {rotate_touchscreen_result.returncode}:\n{rotate_touchscreen_result.stdout}\n{rotate_touchscreen_result.stderr}', file=sys.stderr)
+    print(
+        f'Xinput rotation failed with return code {rotate_touchscreen_result.returncode}:\n{rotate_touchscreen_result.stdout}\n{rotate_touchscreen_result.stderr}', file=sys.stderr)
     sys.exit(1)
 print(f'Orientation: {new_orientation}')
 sys.exit(0)
-
